@@ -1,3 +1,9 @@
+# sndcpy-for-android 9
+
+	folked from https://github.com/rom1v/sndcpy
+	use MediaRecorder.AudioSource.REMOTE_SUBMIX to record audio
+	need system permission
+
 # sndcpy
 
 This tool forwards audio from an Android 10 device to the computer. It does not

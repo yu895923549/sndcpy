@@ -1,29 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.rom1v.sndcpy">
+    package="com.rom1v.sndcpy"
+    android:sharedUserId="android.uid.system">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAPTURE_AUDIO_OUTPUT" />
 
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round">
-        <activity
-            android:name="com.rom1v.sndcpy.MainActivity"
-            android:theme="@style/Theme.Transparent"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true">
+        <service android:name="com.rom1v.sndcpy.RecordService">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="com.rom1v.sndcpy.RECORD" />
             </intent-filter>
-        </activity>
-
-        <service
-            android:name="com.rom1v.sndcpy.RecordService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
+        </service>
     </application>
 </manifest>

@@ -1,6 +1,5 @@
 package com.rom1v.sndcpy;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -8,20 +7,18 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ServiceInfo;
 import android.graphics.drawable.Icon;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioPlaybackCaptureConfiguration;
 import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.media.projection.MediaProjection;
-import android.media.projection.MediaProjectionManager;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.util.Log;
 
 import java.io.IOException;
 
@@ -44,27 +41,15 @@ public class RecordService extends Service {
     private static final int CHANNELS = 2;
 
     private final Handler handler = new ConnectionHandler(this);
-    private MediaProjectionManager mediaProjectionManager;
-    private MediaProjection mediaProjection;
     private Thread recorderThread;
-
-    public static void start(Context context, Intent data) {
-        Intent intent = new Intent(context, RecordService.class);
-        intent.setAction(ACTION_RECORD);
-        intent.putExtra(EXTRA_MEDIA_PROJECTION_DATA, data);
-        context.startForegroundService(intent);
-    }
 
     @Override
     public void onCreate() {
         super.onCreate();
-
         Notification notification = createNotification(false);
-
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID, getString(R.string.app_name), NotificationManager.IMPORTANCE_NONE);
         getNotificationManager().createNotificationChannel(channel);
-
-        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+        startForeground(NOTIFICATION_ID, notification);
     }
 
     @Override
@@ -79,14 +64,8 @@ public class RecordService extends Service {
             return START_NOT_STICKY;
         }
 
-        Intent data = intent.getParcelableExtra(EXTRA_MEDIA_PROJECTION_DATA);
-        mediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-        mediaProjection = mediaProjectionManager.getMediaProjection(Activity.RESULT_OK, data);
-        if (mediaProjection != null) {
+        if (ACTION_RECORD.equals(action)) {
             startRecording();
-        } else {
-            Log.w(TAG, "Failed to capture audio");
-            stopSelf();
         }
         return START_NOT_STICKY;
     }
@@ -103,6 +82,7 @@ public class RecordService extends Service {
         notificationBuilder.setContentText(getText(textRes));
         notificationBuilder.setSmallIcon(R.drawable.ic_album_black_24dp);
         notificationBuilder.addAction(createStopAction());
+        notificationBuilder.setCategory("INITIAL_BG_SERVICE_NOTIFICATION");
         return notificationBuilder.build();
     }
 
@@ -147,16 +127,20 @@ public class RecordService extends Service {
         return builder.build();
     }
 
-    private static AudioRecord createAudioRecord(MediaProjection mediaProjection) {
-        AudioRecord.Builder builder = new AudioRecord.Builder();
-        builder.setAudioFormat(createAudioFormat());
-        builder.setBufferSizeInBytes(1024 * 1024);
-        builder.setAudioPlaybackCaptureConfig(createAudioPlaybackCaptureConfig(mediaProjection));
-        return builder.build();
+    private static AudioRecord createAudioRecord() {
+        AudioFormat audioFormat = createAudioFormat();
+        int minBufferSize = AudioRecord.getMinBufferSize(audioFormat.getSampleRate(), audioFormat.getChannelMask(), audioFormat.getEncoding());
+        return new AudioRecord(MediaRecorder.AudioSource.REMOTE_SUBMIX, audioFormat.getSampleRate(), audioFormat.getChannelMask(), audioFormat.getEncoding(), minBufferSize * 2);
+//        AudioRecord.Builder builder = new AudioRecord.Builder();
+//        builder.setAudioSource(MediaRecorder.AudioSource.REMOTE_SUBMIX);
+//        AudioFormat audioFormat = createAudioFormat();
+//        builder.setAudioFormat(audioFormat);
+//        builder.setBufferSizeInBytes(AudioRecord.getMinBufferSize(audioFormat.getSampleRate(), audioFormat.getChannelMask(), audioFormat.getEncoding()));
+//        return builder.build();
     }
 
     private void startRecording() {
-        final AudioRecord recorder = createAudioRecord(mediaProjection);
+        final AudioRecord recorder = createAudioRecord();
 
         recorderThread = new Thread(new Runnable() {
             @Override
